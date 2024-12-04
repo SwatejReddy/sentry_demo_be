@@ -14,9 +14,15 @@ const server = new ApolloServer({
     context: async ({ req }) => {
         try {
             const user = await authMiddleware(req);
+            if (user && user.userId) {
+                Sentry.setUser({ id: user.userId });
+            } else {
+                Sentry.setUser({ id: null });
+            }
             return { user }; // Attach user context
         } catch (error) {
             console.error("Authentication error:", error.message);
+            Sentry.setUser({ id: null });
             return {}; // No user context if authentication fails
         }
     },
@@ -27,39 +33,7 @@ const server = new ApolloServer({
         // Optionally, you can hide sensitive information or mask errors for the client
         return error;
     },
-    // // Enable tracing in Apollo Server for all requests
-    // plugins: [
-    //     {
-    //         requestDidStart(requestContext) {
-    //             const transaction = Sentry.startTransaction({
-    //                 op: 'graphql',
-    //                 name: requestContext.request.operationName || 'Unnamed Operation',
-    //             });
-    //             requestContext.context.transaction = transaction;
-
-    //             return {
-    //                 willSendResponse() {
-    //                     transaction.finish(); // Finish the transaction when the response is ready
-    //                 },
-    //             };
-    //         },
-    //     },
-    // ],
 })
-
-// // Catch unhandled promise rejections globally
-// process.on('unhandledRejection', (error) => {
-//     Sentry.captureException(error);
-//     console.error('Unhandled Rejection:', error);
-// });
-
-// // Catch uncaught exceptions globally
-// process.on('uncaughtException', (error) => {
-//     Sentry.captureException(error);
-//     console.error('Uncaught Exception:', error);
-//     process.exit(1); // Exit the process after logging the error
-// });
-
 
 
 server.listen().then(async ({ url }) => {

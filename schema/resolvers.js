@@ -19,7 +19,21 @@ const resolvers = {
             const [orders] = await connection.query('SELECT * FROM orders');
             return orders;
         },
-        async getOrders(_, { userId }) {
+        async getOrders(_, { userId }, { user }) {
+            // check if the userId passed in matches with the userId in the token
+            // user.userId -> from the context
+            // userId -> from the query
+            if (user.userId != userId) {
+                // dont need to set it here as we are handling it already in the authMiddleware
+                // Sentry.setUser({ id: user.userId, "testStaticField": "This is a statc field to check the user context" });
+                // Sentry.captureException(new Error("You asked for someone else's orders!"), {
+                //     extra: {
+                //         requestedUserId: userId, // Log the requested userId to compare with the current user
+                //     }
+                // });
+                // console.log(user.userId, userId);
+                throw new Error("You asked for someone else's orders!"); //try when not handling this error later.
+            }
             const [order] = await connection.query('SELECT * FROM orders WHERE user_id = ?', [userId]);
             return order;
         },
